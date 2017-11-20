@@ -2,6 +2,7 @@ grammar Calc;
 
 @header {
   import java.util.*;
+  import java.lang.*;
 }
 
 @parser::members {
@@ -31,34 +32,59 @@ grammar Calc;
     }
     return new double[] {0,0};
   }
+
+  double[] trig(int func, double[] elem) {
+    switch(func) {
+      case SIN : return new double[] {Math.sin(Math.toRadians( elem[0] )), 0};
+      case COS : return new double[] {Math.cos(Math.toRadians( elem[0] )), 0};
+      case TAN : return new double[] {Math.tan(Math.toRadians( elem[0] )), 0};
+    }
+    return new double[] {0,0};
+  }
 }
 
 prog: stat+ ;
 
-stat: e NEWLINE        {System.out.println("(" + $e.v[0] + ( $e.v[1] >= 0 ? "+" : "-" ) + $e.v[1] + "i)");}
+stat: e NEWLINE        {System.out.println("(" + $e.v[0] + ( $e.v[1] >= 0 ? "+" : "" ) + $e.v[1] + "i)");}
     | ID '=' e NEWLINE {memory.put($ID.text, $e.v);}
     | NEWLINE
     ;
 
 e returns [double[] v]
-    : a=e op=('*'|'/'|'%') b=e     {$v = eval($a.v, $op.type, $b.v);}
-    | a=e op=('+'|'-')     b=e     {$v = eval($a.v, $op.type, $b.v);}
-    | '(' re=e ('+'|'-') im=e 'i)' {$v = new double[] {$re.v[0], $im.v[0]};}
-    | INT                          {$v = new double[] {$INT.int, 0};}
-    | DOUBLE                       {$v = new double[] {Double.parseDouble($DOUBLE.text), 0};}
+    : SUB e                              {$v = new double[] {-$e.v[0], -$e.v[1]};}
+    | a=e op=(MUL | DIV | MOD) b=e       {$v = eval($a.v, $op.type, $b.v);}
+    | a=e op=(ADD | SUB) b=e             {$v = eval($a.v, $op.type, $b.v);}
+    | LPAR re=e ADD im=e IMAG RPAR       {$v = new double[] {$re.v[0], $im.v[0]};}
+    | LPAR re=e SUB im=e IMAG RPAR       {$v = new double[] {$re.v[0], -$im.v[0]};}
+    | INT                                {$v = new double[] {$INT.int, 0};}
+    | DOUBLE                             {$v = new double[] {Double.parseDouble($DOUBLE.text), 0};}
     | ID
       {
         String id = $ID.text;
         $v = memory.containsKey(id) ? memory.get(id) : new double[] {0, 0};
       }
-    | '(' e ')'                    {$v = $e.v;}
+    | func=(SIN | COS | TAN) LPAR e RPAR {$v = trig($func.type, $e.v);}
+    | '(' e ')'                          {$v = $e.v;}
     ;
 
-MUL : '*' ;
-DIV : '/' ;
-MOD : '%' ;
-ADD : '+' ;
-SUB : '-' ;
+trig
+    : SIN
+    | COS
+    | TAN
+    ;
+
+SIN : 'sin' ;
+COS : 'cos' ;
+TAN : 'tan' ;
+
+MUL  : '*' ;
+DIV  : '/' ;
+MOD  : '%' ;
+ADD  : '+' ;
+SUB  : '-' ;
+LPAR : '(' ;
+RPAR : ')' ;
+IMAG : 'i' ;
 
 ID      : [a-zA-Z]+ ;
 INT     : [0-9]+ ;
