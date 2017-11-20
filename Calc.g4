@@ -8,11 +8,26 @@ grammar Calc;
   Map<String, double[]> memory = new HashMap<String, double[]>();
   double[] eval(double[] left, int op, double[] right) {
     switch(op) {
-      case MUL : return new double[] { left[0] * right[0] - left[1] * right[1], left[0] * right[1] + left[1] * right[0] };
-      case DIV : return new double[] { left[0] + right[0], left[1] + right[1] };
-      case MOD : return new double[] { left[0] + right[0], left[1] + right[1] };
-      case ADD : return new double[] { left[0] + right[0], left[1] + right[1] };
-      case SUB : return new double[] { left[0] - right[0], left[1] - right[1] };
+      case MUL : return evalAux(left, 0, right);
+      case DIV : return evalAux(left, 1, right);
+      case MOD : return evalAux(left, 2, right);
+      case ADD : return evalAux(left, 3, right);
+      case SUB : return evalAux(left, 4, right);
+    }
+    return new double[] {0,0};
+  }
+
+  double[] evalAux(double[] left, int op, double[] right) {
+    switch(op) {
+      case 0 : return new double[] { left[0] * right[0] - left[1] * right[1], left[0] * right[1] + left[1] * right[0] };
+      case 1 :
+        double[] conj = new double[] { right[0], -right[1] };
+        double[] num = evalAux(left, 0, conj);
+        double[] den = evalAux(right, 0, conj);
+        return new double[] {num[0] / den[0], num[1] / den[0]};
+      case 2 : return new double[] { left[0] % right[0], 0 };
+      case 3 : return new double[] { left[0] + right[0], left[1] + right[1] };
+      case 4 : return new double[] { left[0] - right[0], left[1] - right[1] };
     }
     return new double[] {0,0};
   }
@@ -20,7 +35,7 @@ grammar Calc;
 
 prog: stat+ ;
 
-stat: e NEWLINE        {System.out.println("(" + $e.v[0] + "+" + $e.v[1] + "i)");}
+stat: e NEWLINE        {System.out.println("(" + $e.v[0] + ( $e.v[1] >= 0 ? "+" : "-" ) + $e.v[1] + "i)");}
     | ID '=' e NEWLINE {memory.put($ID.text, $e.v);}
     | NEWLINE
     ;
